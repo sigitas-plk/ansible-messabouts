@@ -1,0 +1,29 @@
+---
+- name: Install kubernetes dependencies 
+  hosts: n1
+  become: true 
+  vars_files: 
+    - vars/config.yml
+  tasks: 
+    - name: install kublet, kubeadm and kubeclt 
+      ansible.builtin.apt: 
+        pkg: 
+          - kubelet={{ kubernetes_version }}-00
+          - kubeadm={{ kubernetes_version }}-00
+          - kubectl={{ kubernetes_version }}-00
+    
+    - block: 
+        - name: load overlay kernel module
+          ansible.builtin.command: modprobe overlay
+
+        - name:  load br_netfilter kernel module 
+          ansible.builtin.command: modprobe br_netfilter
+
+        - name: install containerd
+          ansible.builtin.apt: 
+            name: containerd.io 
+            state: present
+
+        
+
+
