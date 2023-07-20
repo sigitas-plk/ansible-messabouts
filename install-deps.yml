@@ -1,10 +1,28 @@
 ---
 - name: Install kubernetes dependencies 
-  hosts: n1
+  hosts: all
   become: true 
   vars_files: 
     - vars/config.yml
   tasks: 
+
+    # - name: check if swap file exits
+    #   stat: 
+    #     path: /swapfile 
+    #   register: swap_file_check
+
+    - block: 
+      - name: turn off swap 
+        command: swapoff -a
+
+      - name: remove swap entry in fstab 
+        replace:
+          path: /etc/fstab
+          regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+          replace: '#\1\2\3swap\4'
+          backup: yes
+      # when: swap_file_check.stat.exists
+
     - name: install kublet, kubeadm and kubeclt 
       ansible.builtin.apt: 
         pkg: 
