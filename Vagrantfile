@@ -6,12 +6,15 @@ Vagrant.configure("2") do |config|
     config.vm.provider :virtualbox do |vb|
       vb.memory = 2048
       vb.cpus = 2
+      # v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      # v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+      # vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     end
 
     (0...$NODE_COUNT).each do |c|
         config.vm.define "node#{c}" do |node|
            
-            node.vm.box = "generic/ubuntu2204"
+            node.vm.box = "bento/ubuntu-22.04"
             node.vm.hostname = "node#{c}"
             node.vm.network :private_network, ip: "192.168.56.1#{c}"
     

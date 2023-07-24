@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "redhat.ansible",
+        "samuelcolvin.jinjahtml",
+        "esbenp.prettier-vscode"
+    ]
+}

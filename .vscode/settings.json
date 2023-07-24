@@ -1,0 +1,12 @@
+{
+    "editor.fontFamily": "Fira Code Retina, 'Droid Sans Mono', 'monospace', monospace, 'Droid Sans Fallback'",
+    "editor.fontSize": 16,
+    "files.associations": {
+        "*.j2": "jinja-py"
+    },
+    "prettier.enable": true,
+    "ansible.python.interpreterPath": "/bin/python",
+    "[yaml]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml"
+    }
+}

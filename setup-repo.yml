@@ -1,17 +1,17 @@
 ---
-- name: Install kubernetes dependencies 
+- name: Install kubernetes dependencies
   hosts: all
-  become: true 
-  tasks: 
+  become: true
+  tasks:
     # https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
-    - name: Add Google GPG key 
-      ansible.builtin.get_url: 
-        url:  https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    - name: Add Google GPG key
+      ansible.builtin.get_url:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
         dest: /etc/apt/trusted.gpg.d/packages.cloud.google.com.asc
-        mode: '0644'
-        force: true 
+        mode: "0644"
+        force: true
 
-    - name: add google repository 
+    - name: Add google repository
       ansible.builtin.apt_repository:
         repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
         state: present
@@ -21,18 +21,20 @@
       ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
         dest: /etc/apt/trusted.gpg.d/download.docker.com.asc
-        mode: '0644'
-        force: true 
+        mode: "0644"
+        force: true
 
-    - shell: lsb_release -cs
+    - name: Get distribution information
+      ansible.builtin.command: lsb_release -cs
       register: lsb_release
-      
+      changed_when: lsb_release.rc != 0
+
     - name: Add Docker Repository
       ansible.builtin.apt_repository:
         repo: deb https://download.docker.com/linux/ubuntu {{ lsb_release.stdout }} stable
         state: present
 
-    - name: update apt cache
-      ansible.builtin.apt: 
-        update_cache: yes
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
         cache_valid_time: 2000

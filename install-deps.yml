@@ -1,47 +1,49 @@
 ---
-- name: Install kubernetes dependencies 
+- name: Install kubernetes dependencies
   hosts: all
-  become: true 
-  vars_files: 
+  become: true
+  vars_files:
     - vars/config.yml
-  tasks: 
+  tasks:
+    - name: Check if swap is enabled
+      ansible.builtin.command: swapon --show
+      register: swapon_mounts
+      changed_when: swapon_mounts.rc != 0
 
-    # - name: check if swap file exits
-    #   stat: 
-    #     path: /swapfile 
-    #   register: swap_file_check
+    - name: Disable swap
+      when: swapon_mounts.stdout | length > 0
+      block:
+        - name: Disable swap
+          ansible.builtin.command: swapoff -a
+          changed_when: true
 
-    - block: 
-      - name: turn off swap 
-        command: swapoff -a
+        - name: Comment out swap entry in fstab
+          ansible.builtin.replace:
+            path: /etc/fstab
+            regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+            replace: '#\1\2\3swap\4'
+            backup: true
 
-      - name: remove swap entry in fstab 
-        replace:
-          path: /etc/fstab
-          regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
-          replace: '#\1\2\3swap\4'
-          backup: yes
-      # when: swap_file_check.stat.exists
-
-    - name: install kublet, kubeadm and kubeclt 
-      ansible.builtin.apt: 
-        pkg: 
+    - name: Install kublet, kubeadm and kubeclt
+      ansible.builtin.apt:
+        pkg:
           - kubelet={{ kubernetes_version }}-00
           - kubeadm={{ kubernetes_version }}-00
           - kubectl={{ kubernetes_version }}-00
-    
-    - block: 
-        - name: load overlay kernel module
+
+    - name: Configure containerd
+      block:
+        - name: Add OverlayFS module to kernel
           ansible.builtin.command: modprobe overlay
+          register: mp_overlay
+          changed_when: mp_overlay.rc != 0
 
-        - name:  load br_netfilter kernel module 
+        - name: Add bridge netfilter module to kernel
           ansible.builtin.command: modprobe br_netfilter
+          register: mp_br_netfilter
+          changed_when: mp_br_netfilter.rc != 0
 
-        - name: install containerd
-          ansible.builtin.apt: 
-            name: containerd.io 
+        - name: Install containerd
+          ansible.builtin.apt:
+            name: containerd.io
             state: present
-
-        
-
-

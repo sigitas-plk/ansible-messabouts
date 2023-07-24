@@ -1,5 +1,0 @@
---- 
-
-disable_firewall: yes
-
-kubernetes_version: 1.27.3
