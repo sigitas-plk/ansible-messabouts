@@ -31,6 +31,7 @@
           - kubeadm={{ kubernetes_version }}-00
           - kubectl={{ kubernetes_version }}-00
 
+    # https://kubernetes.io/docs/setup/production-environment/container-runtimes/
     - name: Configure containerd
       block:
         - name: Add OverlayFS module to kernel
@@ -42,6 +43,14 @@
           ansible.builtin.command: modprobe br_netfilter
           register: mp_br_netfilter
           changed_when: mp_br_netfilter.rc != 0
+
+        - name: Persist kernel modules between restarts
+          ansible.builtin.template:
+            src: templates/kernel_modules.j2
+            dest: /etc/modules-load.d/k8s.conf
+            owner: root
+            group: root
+            mode: "0600"
 
         - name: Install containerd
           ansible.builtin.apt:
