@@ -27,9 +27,25 @@
     - name: Install kublet, kubeadm and kubeclt
       ansible.builtin.apt:
         pkg:
-          - kubelet={{ kubernetes_version }}-00
-          - kubeadm={{ kubernetes_version }}-00
-          - kubectl={{ kubernetes_version }}-00
+          - kubelet={{ kubernetes_version }}
+          - kubeadm={{ kubernetes_version }}
+          - kubectl={{ kubernetes_version }}
+
+    #  Updating kubernetes should NOT be done automatically with system updates
+    - name: Mark kubernetes and containerd dependencies to hold
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      with_items:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: Start kublet service
+      ansible.builtin.systemd:
+        name: kubelet.service
+        enabled: true
+        state: started
 
     # https://kubernetes.io/docs/setup/production-environment/container-runtimes/
     - name: Configure containerd
@@ -59,26 +75,44 @@
             owner: root
             group: root
             mode: "0600"
+          notify: Reload sysctl
 
         - name: Install containerd
           ansible.builtin.apt:
             name: containerd.io
             state: present
 
-        - name: Check if containerd configuration is present
-          ansible.builtin.stat:
-            path: /etc/containerd/config.toml
-          register: containerd_conf
+        - name: Mark containerd package on hold
+          ansible.builtin.dpkg_selections:
+            name: containerd.io
+            selection: hold
 
-        # - name: Generate containerd configuration
-        #   when: not containerd_conf.stat.exists
-        #   block:
-        #     - name: Save default containerd config
-        #       ansible.builtin.command: containerd config default | tee /etc/containerd/config.toml
+        # Default configuration generated with
+        # "containerd config default"
+        # Modified the "SystemdCgroup" to true as ubuntu is using systemd
+        # And registry.k8s.io/pause:3.6 to 3.9 to match up with kubeadm
+        - name: Copy contaienrd configuration
+          ansible.builtin.copy:
+            src: templates/containerd_conf.toml
+            dest: /etc/containerd/config.toml
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Restart containerd
 
-        # - name: Set systemd as cgroup manager
-        #   ansible.builtin.lineinfile:
-        #     regexp: '^(\s*)SystemdCgroup = false(.*$)'
-        #     line: '\1SystemdCgroup = true\2'
-        #     path: /etc/containerd/config.toml
-        #     # SystemdCgroup = false
+        - name: Enable containerd service
+          ansible.builtin.systemd:
+            name: containerd
+            enabled: true
+          notify: Restart containerd
+
+  handlers:
+    - name: Restart containerd
+      ansible.builtin.systemd:
+        name: containerd
+        state: restarted
+
+    - name: Reload sysctl
+      ansible.builtin.command: sysctl --system
+      register: sysctl_reload
+      changed_when: sysctl_reload.rc != 0
