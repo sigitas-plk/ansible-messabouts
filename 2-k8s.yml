@@ -27,9 +27,9 @@
     - name: Install kublet, kubeadm and kubeclt
       ansible.builtin.apt:
         pkg:
-          - kubelet={{ kubernetes_version }}
-          - kubeadm={{ kubernetes_version }}
-          - kubectl={{ kubernetes_version }}
+          - kubelet={{ kubernetes_version_apt }}
+          - kubeadm={{ kubernetes_version_apt }}
+          - kubectl={{ kubernetes_version_apt }}
 
     #  Updating kubernetes should NOT be done automatically with system updates
     - name: Mark kubernetes and containerd dependencies to hold
@@ -79,7 +79,7 @@
 
         - name: Install containerd
           ansible.builtin.apt:
-            name: containerd.io
+            name: containerd.io={{ containerd_version_apt }}
             state: present
 
         - name: Mark containerd package on hold

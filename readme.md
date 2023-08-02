@@ -6,6 +6,11 @@
  - VirtualBox https://www.virtualbox.org/wiki/Linux_Downloads
 
 
+## Kubernetes overlay network 
+Using Calico https://docs.tigera.io/calico/latest/about (config)[https://docs.tigera.io/calico/latest/manifests/calico.yaml]
+
+
+
 # 
 
 https://docs.ansible.com/ansible/devel/reference_appendices/config.html#avoiding-security-risks-with-ansible-cfg-in-the-current-directory

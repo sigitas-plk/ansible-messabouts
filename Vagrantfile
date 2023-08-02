@@ -1,4 +1,4 @@
-$NODE_COUNT=1
+$NODE_COUNT=2
 $public_ssh_key="#{Dir.home}/.ssh/id_rsa.pub"
 
 Vagrant.configure("2") do |config|
@@ -7,6 +7,10 @@ Vagrant.configure("2") do |config|
       vb.memory = 2048
       vb.cpus = 2
     end
+
+    # config.ssh.username = 'root'
+    # config.ssh.password = 'vagrant'
+    # config.ssh.insert_key = 'true'
 
     (0...$NODE_COUNT).each do |c|
         config.vm.define "node#{c}" do |node|

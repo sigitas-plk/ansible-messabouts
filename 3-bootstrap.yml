@@ -1,0 +1,45 @@
+---
+- name: Bootstrap cluster
+  hosts: all
+  become: true
+  vars_files:
+    - vars/config.yml
+
+  tasks:
+    # - name: Check cluster status
+    #   ansible.builtin.command: "kubectl get nodes"
+    #     ignore_errors: true
+    #     register: cluster_exists
+
+    # - name: Copy kube config
+    #   ansible.builtin.copy:
+    #     remote_src: true
+    #     src: /etc/kubernetes/admin.conf
+    #     dest: /root/.kube/config
+    #     owner: root
+    #     group: root
+    #     mode: preserve
+
+    # - name: Initialise with kubeadm
+    #   ansible.builtin.command: kubeadm init
+
+    - name: Copy calico configuration
+      ansible.builtin.copy:
+        src: templates/calico.j2
+        dest: /tmp/calico.yml
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Copy cluster configuration
+      ansible.builtin.template:
+        src: templates/cluster_configuration.j2
+        dest: /tmp/c_config.yml
+        owner: root
+        group: root
+        mode: "0700"
+
+    # - name: Copy cluster configuration
+    #   ansible.builtin.copy:
+    #     src: templates/cluster_configuration.yml
+    #     dest:
