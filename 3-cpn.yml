@@ -1,12 +1,12 @@
 ---
-- name: Bootstrap cluster
+- name: Bootstrap control plain
   hosts: cpn
   become: true
   vars_files:
     - vars/config.yml
 
   tasks:
-    - name: Dwnload calico config
+    - name: Download calico config
       ansible.builtin.get_url:
         url: https://raw.githubusercontent.com/projectcalico/calico/v{{ cluster.calico_version }}/manifests/calico.yaml
         dest: /etc/kubernetes/calicoinit.yml
@@ -32,7 +32,7 @@
     - name: Initialise cluster
       when: cluster_exists.rc == 1
       block:
-        - name: Intialise kubernetes control plain
+        - name: Kubeadm initialise control plain
           ansible.builtin.shell: kubeadm init --config /etc/kubernetes/kubeadminit.yml > /etc/kubernetes/kubeinit.log
           changed_when: false
 
@@ -56,3 +56,19 @@
         - name: Configure Calico
           ansible.builtin.command: kubectl apply -f /etc/kubernetes/calicoinit.yml
           changed_when: false
+
+        - name: Wait for calico kubeconfig to be created
+          ansible.builtin.wait_for:
+            path: /etc/cni/net.d/calico-kubeconfig
+            timeout: 120
+
+    # Maybe use wait_for instead?
+    - name: Wait for control plain to be ready
+      ansible.builtin.shell: kubectl get pods -A | grep -v -iE 'running|namespace' || true
+      register: pods_running
+      until: pods_running.stdout == ''
+      retries: 12
+      delay: 10
+      changed_when: pods_running.rc != 0
+      tags:
+        - skip_ansible_lint
