@@ -33,7 +33,7 @@ etcd:
 imageRepository: registry.k8s.io
 networking:
   dnsDomain: cluster.local
-  serviceSubnet: "{{ cluster.kubernetes_ip_range }}"
+  serviceSubnet: "{{ cluster.service_subnet }}"
 scheduler: {}
 ---
 kind: KubeletConfiguration

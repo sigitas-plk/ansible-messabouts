@@ -1,4 +1,4 @@
-[control]
+[control_plain]
 cpn ansible_host=192.168.56.10 ansible_user=root
-[node]
-n1 ansible_host=192.168.56.11 ansible_user=root
+[workers]
+node1 ansible_host=192.168.56.11 ansible_user=root

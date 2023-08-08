@@ -13,10 +13,16 @@ Vagrant.configure("2") do |config|
     # config.ssh.insert_key = 'true'
 
     (0...$NODE_COUNT).each do |c|
-        config.vm.define "node#{c}" do |node|
+      
+      node_name = "node#{c}"
+      if (c == 0) 
+        node_name = "cpn"
+      end 
+
+        config.vm.define node_name do |node|
            
             node.vm.box = "bento/ubuntu-22.04"
-            node.vm.hostname = "node#{c}"
+            node.vm.hostname = node_name
             node.vm.network :private_network, ip: "192.168.56.1#{c}"
     
             # Copy public key to our VM (root, and vagrant are default users)

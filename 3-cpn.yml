@@ -1,0 +1,58 @@
+---
+- name: Bootstrap cluster
+  hosts: cpn
+  become: true
+  vars_files:
+    - vars/config.yml
+
+  tasks:
+    - name: Dwnload calico config
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/projectcalico/calico/v{{ cluster.calico_version }}/manifests/calico.yaml
+        dest: /etc/kubernetes/calicoinit.yml
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Copy cluster configuration
+      ansible.builtin.template:
+        src: templates/cluster_configuration.j2
+        dest: /etc/kubernetes/kubeadminit.yml
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Check cluster status
+      ansible.builtin.command: kubectl get nodes
+      register: cluster_exists
+      ignore_errors: true
+      failed_when: false
+      changed_when: false
+
+    - name: Initialise cluster
+      when: cluster_exists.rc == 1
+      block:
+        - name: Intialise kubernetes control plain
+          ansible.builtin.shell: kubeadm init --config /etc/kubernetes/kubeadminit.yml > /etc/kubernetes/kubeinit.log
+          changed_when: false
+
+        - name: Create ~/.kube directory
+          ansible.builtin.file:
+            name: /root/.kube
+            state: directory
+            owner: root
+            group: root
+            mode: "1700"
+
+        - name: Copy .kube/config file
+          ansible.builtin.copy:
+            src: /etc/kubernetes/admin.conf
+            dest: /root/.kube/config
+            owner: root
+            group: root
+            mode: "0700"
+            remote_src: true
+
+        - name: Configure Calico
+          ansible.builtin.command: kubectl apply -f /etc/kubernetes/calicoinit.yml
+          changed_when: false
