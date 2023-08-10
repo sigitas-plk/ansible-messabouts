@@ -32,6 +32,8 @@ Vagrant.configure("2") do |config|
                   echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
                   mkdir -p /root/.ssh
                   echo #{ssh_pub_key} >> /root/.ssh/authorized_keys
+                  sed -ie "/#{node_name}/d" /etc/hosts
+                  echo "192.168.56.1#{c} #{node_name}" >> /etc/hosts
               SHELL
             end
         end

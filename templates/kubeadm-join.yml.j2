@@ -1,0 +1,19 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    token: {{ hostvars.CPN_TOKEN_HOLDER.kubeadm_token }}
+    apiServerEndpoint: {{ hostvars.CPN_TOKEN_HOLDER.kubeadm_public_ip }}:6443
+    caCertHashes: 
+      - sha256:{{ hostvars.CPN_TOKEN_HOLDER.kubeadm_ca_hash }}
+nodeRegistration:
+  node-ip: {{ node_public_ip }}
+  criSocket: unix:///var/run/containerd/containerd.sock
+  imagePullPolicy: IfNotPresent
+  name: {{ ansible_hostname }}
+  taints: null
+---
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+cgroupDriver: systemd

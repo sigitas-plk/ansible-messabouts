@@ -1,0 +1,101 @@
+---
+- name: Bootstrap control plain
+  hosts: all
+  become: true
+  vars_files:
+    - vars/config.yml
+
+  tasks:
+    # TODO: deal with multi-control-plain-nodes
+    - name: Get kubeadm CA cert
+      when: inventory_hostname in groups['control_plain']
+      block:
+        - name: Set public interface
+          ansible.builtin.set_fact:
+            cpn_public_ip: "{{ hostvars[inventory_hostname]['ansible_' + item].ipv4.address }}"
+          when:
+            - hostvars[inventory_hostname]['ansible_' + item].ipv4 is defined
+            - hostvars[inventory_hostname]['ansible_' + item].ipv4.address | ansible.utils.ipaddr( cluster.public_subnet )
+          with_items: "{{ ansible_interfaces }}"
+
+        - name: Check if CA certificate is present
+          ansible.builtin.stat:
+            path: "/etc/kubernetes/pki/ca.crt"
+            get_attributes: false
+            get_checksum: false
+            get_mime: false
+          register: cpn_cert
+
+        - name: Calculate CA cert hash
+          when:
+            - cpn_cert.stat is defined
+            - cpn_cert.stat.exists
+          ansible.builtin.shell: |
+            set -o pipefail \
+            && openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt \
+                | openssl rsa -pubin -outform der 2>/dev/null \
+                | openssl dgst -sha256 -hex | sed 's/^.* //'
+          args:
+            executable: /bin/bash
+          register: kubeadm_ca_hash
+          changed_when: false
+
+        - name: Create join cluster token
+          ansible.builtin.command: kubeadm token create
+          register: kubeadm_join_token
+          changed_when: false
+
+        - name: Persist join token
+          ansible.builtin.add_host:
+            name: "CPN_TOKEN_HOLDER"
+            kubeadm_ca_hash: "{{ kubeadm_ca_hash.stdout }}"
+            kubeadm_token: "{{ kubeadm_join_token.stdout }}"
+            kubeadm_public_ip: "{{ cpn_public_ip }}"
+
+    - name: Join node(s)
+      when: inventory_hostname in groups['workers']
+      block:
+
+        - name: Set public ip
+          ansible.builtin.set_fact:
+            node_public_ip: "{{ hostvars[inventory_hostname]['ansible_' + item].ipv4.address }}"
+          when:
+            - hostvars[inventory_hostname]['ansible_' + item].ipv4 is defined
+            - hostvars[inventory_hostname]['ansible_' + item].ipv4.address | ansible.utils.ipaddr( cluster.public_subnet )
+          with_items: "{{ ansible_interfaces }}"
+
+        - name: Copy join configuration
+          ansible.builtin.template:
+            src: templates/kubeadm-join.yml.j2
+            dest: /etc/kubernetes/kubeadm-join.yml
+            owner: root
+            group: root
+            mode: "0600"
+
+        - name: Cluster join worker
+          ansible.builtin.command: kubeadm join --config /etc/kubernetes/kubeadm-join.yml
+          register: kubeadm_join
+          changed_when: kubeadm_join is success
+
+    # - ansible.builtin.debug:
+    #     var: ansible_all_ipv4_addresses
+    #     var: ansible_default_ipv4
+    #     var: hostvars['node1']
+
+    # - name: Get join token
+    #   when: inventory_hostname in groups['control_plain']
+    #   ansible.builtin.command: kubeadm token create --print-join-command
+    #   register: join_command
+    #   changed_when: false
+
+    # - name: Persist join token
+    #   ansible.builtin.add_host:
+    #     name: "TOKEN_HOLDER"
+    #     join_command: "{{ join_command.stdout }}"
+
+    # - name: Join worker nodes
+    #   when: inventory_hostname in groups['workers']
+    #   block:
+    #     - name: Run kubeadm join
+    #       ansible.builtin.command: "{{ hostvars['TOKEN_HOLDER']['join_command'] }}"
+    #       changed_when: false

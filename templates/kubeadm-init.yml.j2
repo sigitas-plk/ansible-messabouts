@@ -10,13 +10,15 @@ bootstrapTokens:
   - signing
   - authentication
 localAPIEndpoint:
-  advertiseAddress:  "{{ cluster.control_plain_ip }}"
+  advertiseAddress:  "{{ cpn_public_ip }}"
   bindPort: 6443
 nodeRegistration:
   criSocket: unix:///var/run/containerd/containerd.sock
   imagePullPolicy: IfNotPresent
   name: cpn
   taints: null
+  kubeletExtraArgs:
+    node-ip: "{{ cpn_public_ip }}"
 ---
 kind: ClusterConfiguration
 apiVersion: kubeadm.k8s.io/v1beta3
@@ -34,6 +36,7 @@ imageRepository: registry.k8s.io
 networking:
   dnsDomain: cluster.local
   serviceSubnet: "{{ cluster.service_subnet }}"
+  podSubnet: {{ cluster.pod_subnet }}
 scheduler: {}
 ---
 kind: KubeletConfiguration

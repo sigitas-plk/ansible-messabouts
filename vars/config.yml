@@ -3,8 +3,8 @@ disable_firewall: yes
 kubernetes_version: 1.27.3
 kubernetes_version_apt: 1.27.3-00
 containerd_version_apt: 1.6.21-1
-cluster: 
+cluster:
+  public_subnet: 192.168.56.0/24
   service_subnet: 10.96.0.0/16
-  calico_version: 3.26.1
-  control_plain_ip: 192.168.56.10
-  kubernetes_ip_range: 10.96.0.0/12
+  pod_subnet: 10.244.0.0/16
+  # control_plain_ip: 192.168.56.10

@@ -6,17 +6,26 @@
     - vars/config.yml
 
   tasks:
-    - name: Download calico config
-      ansible.builtin.get_url:
-        url: https://raw.githubusercontent.com/projectcalico/calico/v{{ cluster.calico_version }}/manifests/calico.yaml
-        dest: /etc/kubernetes/calicoinit.yml
+    - name: Set public interface & IP fact
+      ansible.builtin.set_fact:
+        public_interface: "{{ hostvars[inventory_hostname]['ansible_' + item].device }}"
+        cpn_public_ip: "{{ hostvars[inventory_hostname]['ansible_' + item].ipv4.address }}"
+      when:
+        - hostvars[inventory_hostname]['ansible_' + item].ipv4 is defined
+        - hostvars[inventory_hostname]['ansible_' + item].ipv4.address | ansible.utils.ipaddr( cluster.public_subnet )
+      with_items: "{{ ansible_interfaces }}"
+
+    - name: Copy flannel configuration
+      ansible.builtin.template:
+        src: templates/flannel.yml.j2
+        dest: /etc/kubernetes/flannel.yml
         owner: root
         group: root
         mode: "0600"
 
     - name: Copy cluster configuration
       ansible.builtin.template:
-        src: templates/cluster_configuration.j2
+        src: templates/kubeadm-init.yml.j2
         dest: /etc/kubernetes/kubeadminit.yml
         owner: root
         group: root
@@ -53,13 +62,13 @@
             mode: "0700"
             remote_src: true
 
-        - name: Configure Calico
-          ansible.builtin.command: kubectl apply -f /etc/kubernetes/calicoinit.yml
+        - name: Create flannel container
+          ansible.builtin.command: kubectl apply -f /etc/kubernetes/flannel.yml
           changed_when: false
 
-        - name: Wait for calico kubeconfig to be created
+        - name: Wait for flannel to start up
           ansible.builtin.wait_for:
-            path: /etc/cni/net.d/calico-kubeconfig
+            path: /etc/cni/net.d/10-flannel.conflist
             timeout: 120
 
     # Maybe use wait_for instead?
