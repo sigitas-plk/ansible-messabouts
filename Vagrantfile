@@ -1,4 +1,4 @@
-$NODE_COUNT=2
+$NODE_COUNT=4
 $public_ssh_key="#{Dir.home}/.ssh/id_rsa.pub"
 
 Vagrant.configure("2") do |config|
